@@ -187,8 +187,8 @@ export default function Console() {
           const vm = Math.max(vRaw, vCor, vObs, 1e-6)
           return (
             <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
-              className="pointer-events-none absolute z-40 w-[230px] overflow-hidden rounded-xl border border-line bg-white/95 p-3 shadow-xl backdrop-blur"
-              style={{ left: Math.min(hover.x + 16, size.w - 250), top: Math.max(8, hover.y - 30) }}>
+              className="pointer-events-none absolute z-40 w-[230px] overflow-hidden rounded-xl p-3 backdrop-blur"
+              style={{ background: 'var(--console-tooltip-bg)', border: '1px solid var(--console-tooltip-border)', boxShadow: 'var(--console-tooltip-shadow)', left: Math.min(hover.x + 16, size.w - 250), top: Math.max(8, hover.y - 30) }}>
               <span aria-hidden className="absolute inset-x-0 top-0 h-[2px]" style={{ background: `linear-gradient(90deg, transparent, ${wc}, transparent)` }} />
               <span aria-hidden className="absolute -top-10 -right-10 h-20 w-20 rounded-full blur-2xl" style={{ background: wc, opacity: 0.18 }} />
               <div className="relative font-display text-sm font-semibold tracking-tight">{hovered.name}</div>
