@@ -6,4 +6,5 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: { port: 5173, host: true },
   build: { chunkSizeWarningLimit: 4000 },
+  assetsInclude: ['**/*.lottie'],
 })

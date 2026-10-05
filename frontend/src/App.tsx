@@ -6,6 +6,7 @@ import { loadMeta, loadTimeline, loadVerification } from './lib/data'
 import { useT } from './lib/i18n'
 import type { Tab } from './lib/types'
 import Console from './pages/Console'
+import AegisLandingPage from './pages/AegisLandingPage'
 
 const Districts = lazy(() => import('./pages/Districts'))
 const RegimeLab = lazy(() => import('./pages/RegimeLab'))
@@ -219,7 +220,27 @@ function Nav() {
   )
 }
 
-export default function App() {
+import React from 'react'
+
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: any}> {
+  constructor(props: any) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error: any) { return { hasError: true, error }; }
+  render() {
+    if (this.state.hasError) {
+      return <div style={{padding: 40, color: 'red', background: 'white'}}>
+        <h1>Something went wrong.</h1>
+        <pre style={{whiteSpace: 'pre-wrap'}}>{String(this.state.error?.stack || this.state.error)}</pre>
+      </div>;
+    }
+    return this.props.children;
+  }
+}
+
+export default function AppWrapper() {
+  return <ErrorBoundary><App /></ErrorBoundary>
+}
+
+function App() {
   const { tab, booted, meta, set } = useStore()
   const [err, setErr] = useState<string | null>(null)
 
@@ -233,13 +254,16 @@ export default function App() {
       .catch((e) => setErr(String(e)))
   }, [set])
 
+  if (!booted) {
+    return <AegisLandingPage key="boot" />
+  }
+
   return (
     <div className="relative flex h-full flex-col space-bg">
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="aurora" />
         <div className="noise" />
       </div>
-      <AnimatePresence>{!booted && <Boot key="boot" onDone={() => set({ booted: true })} />}</AnimatePresence>
       <Nav />
       <main className="relative flex-1 overflow-hidden">
         {err && <div className="m-8 rounded-xl border border-rose-500/40 bg-rose-500/10 p-4 font-mono text-sm text-rose-300">Could not load dashboard data ({err}). Run <code>backend/run_pipeline.py</code> first.</div>}

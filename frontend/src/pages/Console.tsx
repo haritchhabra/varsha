@@ -76,8 +76,16 @@ export default function Console() {
   const [ref, size] = useSize<HTMLDivElement>()
   const [vs, setVs] = useState<MapViewState | null>(null)
   const [split, setSplit] = useState(0.5)
+  const [isDark, setIsDark] = useState(() => document.documentElement.getAttribute('data-theme') !== 'light')
   const fitted = useRef(false)
   const date = timeline[dateIdx]?.date
+
+  const toggleTheme = () => {
+    const next = isDark ? 'light' : 'dark'
+    setIsDark(!isDark)
+    document.documentElement.setAttribute('data-theme', next)
+    localStorage.setItem('aegisx-theme', next)
+  }
 
   useEffect(() => { loadGeo('districts').then(setDistricts); loadGeo('states').then(setStates) }, [])
   useEffect(() => {
@@ -121,6 +129,9 @@ export default function Console() {
   return (
     <div className="relative flex h-full flex-col">
       <WarningTicker meta={meta} day={day} lead={lead} />
+      <button onClick={toggleTheme} className="pointer-events-auto absolute top-2 right-4 z-50 flex h-8 w-8 items-center justify-center rounded-full border border-line bg-ink-1/90 text-fg-2 shadow-sm backdrop-blur transition-all hover:bg-ink-2">
+        {isDark ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>}
+      </button>
       <div ref={ref} className="relative flex-1 overflow-hidden">
         <div className="absolute inset-0 grid-overlay" />
         {vs && (
@@ -154,7 +165,7 @@ export default function Console() {
         <div className="pointer-events-none absolute inset-0 z-20 grid grid-rows-[minmax(0,1fr)_auto] gap-3 p-3">
           <div className="grid min-h-0 grid-cols-[320px_minmax(0,1fr)_340px] gap-3">
             <div className="pointer-events-auto flex min-h-0 flex-col gap-3">
-              <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl"><RegimePanel meta={meta} day={day} lead={lead} /><div aria-hidden className="pointer-events-none sticky bottom-0 -mt-7 h-7 rounded-b-2xl bg-gradient-to-t from-[#050a14]/90 to-transparent" /></div>
+              <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl"><RegimePanel meta={meta} day={day} lead={lead} /><div aria-hidden className="pointer-events-none sticky bottom-0 -mt-7 h-7 rounded-b-2xl bg-gradient-to-t from-void/90 to-transparent" /></div>
               <LayerControls />
             </div>
             <div className="relative min-h-0">
@@ -163,7 +174,7 @@ export default function Console() {
             </div>
             <div className="pointer-events-auto min-h-0 overflow-y-auto rounded-2xl">
               {selected === null && <SituationPanel meta={meta} day={day} lead={lead} onSelect={(id) => set({ selected: id, playing: false })} />}
-              {selected === null && <div aria-hidden className="pointer-events-none sticky bottom-0 -mt-7 h-7 rounded-b-2xl bg-gradient-to-t from-[#050a14]/90 to-transparent" />}
+              {selected === null && <div aria-hidden className="pointer-events-none sticky bottom-0 -mt-7 h-7 rounded-b-2xl bg-gradient-to-t from-void/90 to-transparent" />}
             </div>
           </div>
           <div className="pointer-events-auto"><Timeline /></div>
@@ -176,7 +187,7 @@ export default function Console() {
           const vm = Math.max(vRaw, vCor, vObs, 1e-6)
           return (
             <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
-              className="pointer-events-none absolute z-40 w-[230px] overflow-hidden rounded-xl border border-neon/25 bg-[linear-gradient(180deg,#0f1b30f5,#080f1cf5)] p-3 shadow-[0_18px_40px_-12px_#000,0_0_24px_-10px_#22d3ee,inset_0_1px_0_#ffffff14] backdrop-blur"
+              className="pointer-events-none absolute z-40 w-[230px] overflow-hidden rounded-xl border border-line bg-white/95 p-3 shadow-xl backdrop-blur"
               style={{ left: Math.min(hover.x + 16, size.w - 250), top: Math.max(8, hover.y - 30) }}>
               <span aria-hidden className="absolute inset-x-0 top-0 h-[2px]" style={{ background: `linear-gradient(90deg, transparent, ${wc}, transparent)` }} />
               <span aria-hidden className="absolute -top-10 -right-10 h-20 w-20 rounded-full blur-2xl" style={{ background: wc, opacity: 0.18 }} />
@@ -184,7 +195,7 @@ export default function Console() {
               <div className="relative text-[11px] text-fg-3">{hovered.state}</div>
               <div className="relative mt-2 grid grid-cols-3 gap-1 font-mono text-[10.5px]">
                 {[
-                  { l: 'raw', v: vRaw, cls: 'text-[#f0a3a3]', c: '#e66767' },
+                  { l: 'raw', v: vRaw, cls: 'text-red-500', c: '#ef4444' },
                   { l: 'varsha', v: vCor, cls: 'text-neon-2', c: '#22d3ee' },
                   { l: 'obs', v: vObs, cls: 'text-fg', c: '#e6edf7' },
                 ].map((r) => (
@@ -205,7 +216,7 @@ export default function Console() {
             </motion.div>
           )
         })()}
-        {playing && <div className="absolute top-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-neon/40 bg-ink-1/80 px-3 py-1 font-mono text-[10px] tracking-wider text-neon shadow-[0_0_20px_-6px_#22d3ee] backdrop-blur-sm"><span className="dot-live text-neon" />▶ REPLAYING SEASON</div>}
+        {playing && <div className="absolute top-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-line bg-ink-1/90 px-3 py-1 font-mono text-[10px] tracking-wider text-neon shadow-md backdrop-blur-sm"><span className="dot-live text-neon" />▶ REPLAYING SEASON</div>}
       </div>
     </div>
   )
