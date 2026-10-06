@@ -3,7 +3,8 @@ import DeckGL from '@deck.gl/react'
 import { BitmapLayer, ColumnLayer, GeoJsonLayer, LineLayer, PathLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers'
 import type { MapViewState, PickingInfo } from '@deck.gl/core'
 import type { DayData, GridDay, Layer, Meta, Mode } from '../lib/types'
-import { deltaColor, hex, probColor, rainColor, warnColor, type RGBA } from '../lib/colors'
+import { REGIME_COLORS, WARN, deltaColor, hex, probColor, rainColor, warnColor, type RGBA } from '../lib/colors'
+import { theme } from '../lib/theme'
 
 export interface HoverInfo { x: number; y: number; id: number }
 
@@ -157,9 +158,12 @@ export default function MapView(p: Props) {
   }), [])
   const controller = useMemo(() => ({ dragRotate: mode === 'towers', inertia: 300, doubleClickZoom: false }), [mode])
   const pulse = (Math.sin(t * 4) + 1) / 2
+  const T = theme()
+  const M = T.map
+  const a = (c: RGBA, alpha: number): RGBA => [c[0], c[1], c[2], alpha]
   const layers = []
 
-  layers.push(new PathLayer({ id: 'graticule', data: GRATICULE, getPath: (d) => d.path, getColor: [34, 211, 238, 18], widthUnits: 'pixels', getWidth: 1 }))
+  layers.push(new PathLayer({ id: 'graticule', data: GRATICULE, getPath: (d) => d.path, getColor: M.graticule, widthUnits: 'pixels', getWidth: 1 }))
 
   if (mode === 'grid' && bitmap) {
     const b = [g.lon0 - g.res / 2, g.lat0 - g.res / 2, g.lon0 + (g.nlon - 0.5) * g.res, g.lat0 + (g.nlat - 0.5) * g.res] as [number, number, number, number]
@@ -176,9 +180,9 @@ export default function MapView(p: Props) {
       extruded: extr,
       pickable: true,
       autoHighlight: true,
-      highlightColor: [255, 255, 255, 60],
+      highlightColor: M.hover,
       getFillColor: (f) => colorFor(layer, values[(f.properties as { id: number }).id]),
-      getLineColor: mode === 'district' ? [120, 150, 190, 55] : [120, 150, 190, 38],
+      getLineColor: mode === 'district' ? M.districtLine : M.districtLineFaint,
       lineWidthUnits: 'pixels',
       getLineWidth: 0.6,
       updateTriggers: { getFillColor: [values, layer, mode], getLineColor: [mode] },
@@ -198,7 +202,7 @@ export default function MapView(p: Props) {
       getElevation: (d) => (isP ? d.v * 120 : effLayer === 'delta' ? Math.abs(d.v) : d.v),
       elevationScale: isP ? 4000 : 2600,
       getFillColor: (d) => colorFor(effLayer === 'warn' ? 'cor' : effLayer, d.v, 250),
-      material: { ambient: 0.5, diffuse: 0.7, shininess: 40, specularColor: [120, 200, 255] },
+      material: { ambient: 0.5, diffuse: 0.7, shininess: 40, specularColor: T.fx.vivid ? [120, 200, 255] : [210, 210, 210] },
       pickable: false,
       updateTriggers: { getElevation: [effLayer], getFillColor: [effLayer] },
       transitions: { getElevation: 500 },
@@ -206,23 +210,25 @@ export default function MapView(p: Props) {
   }
 
   if (p.states) {
-    layers.push(new GeoJsonLayer({ id: 'states-halo', data: p.states, filled: false, stroked: true, getLineColor: [34, 211, 238, 14], lineWidthUnits: 'pixels', getLineWidth: 10 }))
-    layers.push(new GeoJsonLayer({ id: 'states-glow', data: p.states, filled: false, stroked: true, getLineColor: [34, 211, 238, 40], lineWidthUnits: 'pixels', getLineWidth: 4 }))
-    layers.push(new GeoJsonLayer({ id: 'states', data: p.states, filled: false, stroked: true, getLineColor: [103, 232, 249, 150], lineWidthUnits: 'pixels', getLineWidth: 0.9 }))
+    if (M.stateGlow) {
+      layers.push(new GeoJsonLayer({ id: 'states-halo', data: p.states, filled: false, stroked: true, getLineColor: a(M.stateGlow, 14), lineWidthUnits: 'pixels', getLineWidth: 10 }))
+      layers.push(new GeoJsonLayer({ id: 'states-glow', data: p.states, filled: false, stroked: true, getLineColor: M.stateGlow, lineWidthUnits: 'pixels', getLineWidth: 4 }))
+    }
+    layers.push(new GeoJsonLayer({ id: 'states', data: p.states, filled: false, stroked: true, getLineColor: M.stateLine, lineWidthUnits: 'pixels', getLineWidth: T.fx.vivid ? 0.9 : 1.1 }))
   }
 
   if (redFeatures.length && layer !== 'obs' && layer !== 'raw' && layer !== 'delta') {
     layers.push(new GeoJsonLayer({
       id: 'red-pulse', data: { type: 'FeatureCollection', features: redFeatures } as GeoJSON.FeatureCollection,
       filled: false, stroked: true, lineWidthUnits: 'pixels',
-      getLineColor: [255, 80, 80, Math.round(90 + 150 * pulse)], getLineWidth: 1.2 + 2.5 * pulse,
+      getLineColor: a(hex(WARN[3].color), Math.round(90 + 150 * pulse)), getLineWidth: 1.2 + 2.5 * pulse,
       updateTriggers: { getLineColor: [pulse], getLineWidth: [pulse] },
     }))
   }
 
   if (selFeature.length) {
-    layers.push(new GeoJsonLayer({ id: 'sel-glow', data: { type: 'FeatureCollection', features: selFeature } as GeoJSON.FeatureCollection, filled: true, getFillColor: [255, 255, 255, 25], stroked: true, getLineColor: [255, 255, 255, 90], lineWidthUnits: 'pixels', getLineWidth: 7 }))
-    layers.push(new GeoJsonLayer({ id: 'sel', data: { type: 'FeatureCollection', features: selFeature } as GeoJSON.FeatureCollection, filled: false, stroked: true, getLineColor: [255, 255, 255, 255], lineWidthUnits: 'pixels', getLineWidth: 2 }))
+    layers.push(new GeoJsonLayer({ id: 'sel-glow', data: { type: 'FeatureCollection', features: selFeature } as GeoJSON.FeatureCollection, filled: true, getFillColor: M.selectionFill, stroked: true, getLineColor: a(M.selection, T.fx.vivid ? 90 : 60), lineWidthUnits: 'pixels', getLineWidth: T.fx.vivid ? 7 : 5 }))
+    layers.push(new GeoJsonLayer({ id: 'sel', data: { type: 'FeatureCollection', features: selFeature } as GeoJSON.FeatureCollection, filled: false, stroked: true, getLineColor: M.selection, lineWidthUnits: 'pixels', getLineWidth: 2 }))
   }
 
   // --- depression: observed track, observed centre, NWP centre + displacement -------------
@@ -230,26 +236,28 @@ export default function MapView(p: Props) {
     const dep = day.dep
     const track = dep.track.map(([la, lo]) => [lo, la] as [number, number])
     const oc: [number, number] = [dep.obs[1], dep.obs[0]]
-    layers.push(new PathLayer({ id: 'dep-track', data: [{ path: track }], getPath: (d) => d.path, getColor: hex('#d55181', 200), widthUnits: 'pixels', getWidth: 3, capRounded: true, jointRounded: true }))
-    layers.push(new ScatterplotLayer({ id: 'dep-track-pts', data: track, getPosition: (d) => d, getRadius: 3, radiusUnits: 'pixels', getFillColor: hex('#f5b8ff', 220) }))
+    const DEP = hex(REGIME_COLORS[2])
+    const RAWC = hex(T.ui.raw), RAWT = hex(T.ui.raw2), FG = hex(T.ui.fg)
+    layers.push(new PathLayer({ id: 'dep-track', data: [{ path: track }], getPath: (d) => d.path, getColor: a(DEP, 200), widthUnits: 'pixels', getWidth: 3, capRounded: true, jointRounded: true }))
+    layers.push(new ScatterplotLayer({ id: 'dep-track-pts', data: track, getPosition: (d) => d, getRadius: 3, radiusUnits: 'pixels', getFillColor: T.fx.vivid ? hex('#f5b8ff', 220) : a(DEP, 230) }))
     layers.push(new ScatterplotLayer({
       id: 'dep-pulse', data: [oc], getPosition: (d) => d, radiusUnits: 'meters',
       getRadius: 60000 + 140000 * ((t * 0.6) % 1), filled: false, stroked: true, lineWidthUnits: 'pixels', getLineWidth: 2,
-      getLineColor: [245, 184, 255, Math.round(230 * (1 - ((t * 0.6) % 1)))], updateTriggers: { getRadius: [t], getLineColor: [t] },
+      getLineColor: a(T.fx.vivid ? [245, 184, 255, 255] : DEP, Math.round(230 * (1 - ((t * 0.6) % 1)))), updateTriggers: { getRadius: [t], getLineColor: [t] },
     }))
-    layers.push(new ScatterplotLayer({ id: 'dep-core', data: [oc], getPosition: (d) => d, radiusUnits: 'pixels', getRadius: 7, getFillColor: hex('#d55181'), stroked: true, getLineColor: [255, 255, 255, 230], lineWidthUnits: 'pixels', getLineWidth: 2 }))
+    layers.push(new ScatterplotLayer({ id: 'dep-core', data: [oc], getPosition: (d) => d, radiusUnits: 'pixels', getRadius: 7, getFillColor: DEP, stroked: true, getLineColor: a(M.textOutline, 230), lineWidthUnits: 'pixels', getLineWidth: 2 }))
     const fc = dep.fc[li]
     const labels: { p: [number, number]; text: string; color: RGBA; off: [number, number]; anchor: 'start' | 'end' }[] = [
-      { p: oc, text: `LOW · DAY ${dep.day}`, color: [245, 184, 255, 255], off: [12, -12], anchor: 'start' },
+      { p: oc, text: `LOW · DAY ${dep.day}`, color: T.fx.vivid ? [245, 184, 255, 255] : FG, off: [12, -12], anchor: 'start' },
     ]
     if (fc) {
       const fp: [number, number] = [fc[1], fc[0]]
-      layers.push(new LineLayer({ id: 'dep-err', data: [{ s: fp, t: oc }], getSourcePosition: (d) => d.s, getTargetPosition: (d) => d.t, getColor: [230, 103, 103, 200], widthUnits: 'pixels', getWidth: 1.5 }))
-      layers.push(new ScatterplotLayer({ id: 'dep-nwp', data: [fp], getPosition: (d) => d, radiusUnits: 'pixels', getRadius: 8, filled: false, stroked: true, getLineColor: [230, 103, 103, 255], lineWidthUnits: 'pixels', getLineWidth: 2 }))
-      labels.push({ p: fp, text: `NWP centre ${Math.round(km(fc, dep.obs))} km off`, color: [255, 150, 150, 255], off: [-12, 12], anchor: 'end' })
+      layers.push(new LineLayer({ id: 'dep-err', data: [{ s: fp, t: oc }], getSourcePosition: (d) => d.s, getTargetPosition: (d) => d.t, getColor: a(RAWC, 200), widthUnits: 'pixels', getWidth: 1.5 }))
+      layers.push(new ScatterplotLayer({ id: 'dep-nwp', data: [fp], getPosition: (d) => d, radiusUnits: 'pixels', getRadius: 8, filled: false, stroked: true, getLineColor: RAWC, lineWidthUnits: 'pixels', getLineWidth: 2 }))
+      labels.push({ p: fp, text: `NWP centre ${Math.round(km(fc, dep.obs))} km off`, color: RAWT, off: [-12, 12], anchor: 'end' })
     }
-    layers.push(new TextLayer({ id: 'dep-labels', data: labels, getPosition: (d) => d.p, getText: (d) => d.text, getColor: (d) => d.color, getTextAnchor: (d) => d.anchor, getSize: 12, getPixelOffset: (d) => d.off, fontFamily: 'Inter, sans-serif', fontWeight: 600, characterSet: 'auto', outlineWidth: 4, outlineColor: [4, 7, 13, 255], fontSettings: { sdf: true, fontSize: 64, buffer: 6 },
-      background: true, getBackgroundColor: [7, 12, 22, 200], backgroundPadding: [6, 3, 6, 3], getBorderColor: (d) => [d.color[0], d.color[1], d.color[2], 110] as RGBA, getBorderWidth: 1 }))
+    layers.push(new TextLayer({ id: 'dep-labels', data: labels, getPosition: (d) => d.p, getText: (d) => d.text, getColor: (d) => d.color, getTextAnchor: (d) => d.anchor, getSize: 12, getPixelOffset: (d) => d.off, fontFamily: 'Inter, sans-serif', fontWeight: 600, characterSet: 'auto', outlineWidth: 4, outlineColor: M.textOutline, fontSettings: { sdf: true, fontSize: 64, buffer: 6 },
+      background: true, getBackgroundColor: a(M.textOutline, T.mode === 'light' ? 235 : 200), backgroundPadding: [6, 3, 6, 3], getBorderColor: (d) => [d.color[0], d.color[1], d.color[2], 110] as RGBA, getBorderWidth: 1 }))
   }
 
   return (

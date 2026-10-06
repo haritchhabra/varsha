@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { Meta } from '../lib/types'
+import { DIV, SEQ } from '../lib/colors'
+import { theme } from '../lib/theme'
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 const hx = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16))
@@ -9,8 +11,7 @@ function ramp(stops: string[], t: number) {
   const a = hx(stops[i]), b = hx(stops[i + 1])
   return `rgb(${lerp(a[0], b[0], f) | 0},${lerp(a[1], b[1], f) | 0},${lerp(a[2], b[2], f) | 0})`
 }
-export const SEQ = ['#0b1a2e', '#123a66', '#1f5f99', '#2f86d6', '#62b3f0', '#d6ecff']
-export const DIV = ['#e2703f', '#9c4d27', '#4a3a31', '#383835', '#2a4568', '#3170c0', '#5aa2f5']
+export { DIV, SEQ } // theme-driven ramps live in lib/colors.ts
 export const seqColor = (v: number, max: number) => ramp(SEQ, Math.sqrt(Math.max(0, v) / max))
 export const divColor = (v: number, lim: number) => ramp(DIV, (v / lim + 1) / 2)
 
@@ -49,16 +50,17 @@ export default function MiniMap({ meta, values, color, states, width = 210 }: {
         }
       }
       ctx.lineJoin = 'round'
-      ctx.strokeStyle = 'rgba(4,7,13,0.55)'
+      const T = theme(), sl = T.map.stateLine, bg = T.map.textOutline
+      ctx.strokeStyle = `rgba(${bg[0]},${bg[1]},${bg[2]},${T.mode === 'light' ? 0.7 : 0.55})`
       ctx.lineWidth = 1.4
       ctx.stroke(path)
-      ctx.strokeStyle = 'rgba(103,232,249,0.42)'
+      ctx.strokeStyle = T.fx.vivid ? 'rgba(103,232,249,0.42)' : `rgba(${sl[0]},${sl[1]},${sl[2]},${T.mode === 'light' ? 0.55 : 0.45})`
       ctx.lineWidth = 0.6
       ctx.stroke(path)
     }
   }, [meta, values, color, states, width, height])
   return (
     <canvas ref={ref} className="transition-[filter] duration-300"
-      style={{ width, height, filter: 'drop-shadow(0 0 1px rgba(103,232,249,0.55)) drop-shadow(0 0 8px rgba(34,211,238,0.22))' }} />
+      style={{ width, height, filter: theme().fx.vivid ? 'drop-shadow(0 0 1px rgba(103,232,249,0.55)) drop-shadow(0 0 8px rgba(34,211,238,0.22))' : undefined }} />
   )
 }

@@ -1,9 +1,13 @@
 // Colour system. Data colours follow the dataviz method:
-//  - rain magnitude: ordinal ramp over the IMD intensity classes, analogous blue -> violet -> pink,
-//    lightness rising with intensity so low values recede into the dark surface
+//  - rain magnitude: ordinal ramp over the IMD intensity classes, lightness monotonic with intensity
+//    (low values recede into the surface: pale on light themes, dark on dark themes)
 //  - probability: second sequential context -> its own hue (orange)
-//  - correction delta: diverging orange (drier) <-> gray <-> blue (wetter)
+//  - correction delta: diverging orange (drier) <-> neutral <-> blue (wetter)
 //  - warnings: fixed IMD status colours, always paired with a label
+// The arrays below are theme-driven: lib/theme.ts swaps their colours in place on applyTheme(),
+// and the app remounts so every consumer repaints. Exported names and shapes never change.
+import { onThemeApplied, theme } from './theme'
+
 export type RGBA = [number, number, number, number]
 
 export const hex = (h: string, a = 255): RGBA => {
@@ -19,7 +23,7 @@ export const RAIN_CLASSES = [
   { min: 115.6, label: 'Very heavy', short: '115.6–204.4', color: '#a78bfa' },
   { min: 204.5, label: 'Extremely heavy', short: '≥ 204.5', color: '#f5b8ff' },
 ]
-const RAIN_RGBA = RAIN_CLASSES.map((c) => hex(c.color))
+let RAIN_RGBA = RAIN_CLASSES.map((c) => hex(c.color))
 
 export function rainClass(mm: number): number {
   for (let i = RAIN_CLASSES.length - 1; i >= 0; i--) if (mm >= RAIN_CLASSES[i].min) return i
@@ -29,9 +33,9 @@ export function rainColor(mm: number, alpha = 235): RGBA {
   const k = rainClass(mm)
   if (k < 0) return [0, 0, 0, 0]
   const c = RAIN_RGBA[k]
-  return [c[0], c[1], c[2], k === 0 ? Math.round(alpha * 0.55) : alpha]
+  return [c[0], c[1], c[2], k === 0 ? Math.round(alpha * theme().map.lowAlpha) : alpha]
 }
-export const rainCss = (mm: number) => { const k = rainClass(mm); return k < 0 ? '#0b1322' : RAIN_CLASSES[k].color }
+export const rainCss = (mm: number) => { const k = rainClass(mm); return k < 0 ? theme().ui.ink2 : RAIN_CLASSES[k].color }
 
 export const PROB_STEPS = [
   { min: 0.1, color: '#3a1f0e', label: '10–30%' },
@@ -59,17 +63,42 @@ export function deltaColor(d: number, alpha = 225): RGBA {
   return hex(DELTA_STEPS[DELTA_STEPS.length - 1].color, alpha)
 }
 
-// IMD SOP (2021) s1.7.8 colour code: Green = No warning, Yellow = Watch, Orange = Alert, Red = Warning
+// IMD SOP (2021) s1.7.8 colour code: Green = No warning, Yellow = Watch, Orange = Alert, Red = Warning.
+// `color` is the fixed IMD status fill; `text` is the same status tuned for legible text on the theme surface.
 export const WARN = [
-  { key: 'green', label: 'No warning', name: 'Green', action: 'No action', color: '#0ca30c' },
-  { key: 'yellow', label: 'Watch', name: 'Yellow', action: 'Be updated', color: '#fab219' },
-  { key: 'orange', label: 'Alert', name: 'Orange', action: 'Be prepared', color: '#ec835a' },
-  { key: 'red', label: 'Warning', name: 'Red', action: 'Take action', color: '#d03b3b' },
+  { key: 'green', label: 'No warning', name: 'Green', action: 'No action', color: '#0ca30c', text: '#6fcf6f' },
+  { key: 'yellow', label: 'Watch', name: 'Yellow', action: 'Be updated', color: '#fab219', text: '#fab219' },
+  { key: 'orange', label: 'Alert', name: 'Orange', action: 'Be prepared', color: '#ec835a', text: '#ec835a' },
+  { key: 'red', label: 'Warning', name: 'Red', action: 'Take action', color: '#d03b3b', text: '#d03b3b' },
 ]
-export const warnColor = (lvl: number, alpha = 220): RGBA => (lvl === 0 ? hex('#0ca30c', 28) : hex(WARN[lvl].color, alpha))
+export const warnColor = (lvl: number, alpha = 220): RGBA => (lvl === 0 ? hex(WARN[0].color, theme().map.greenAlpha) : hex(WARN[lvl].color, alpha))
 
 export const REGIME_COLORS = ['#3987e5', '#c98500', '#d55181', '#008300', '#9085e9', '#8a8980']
 
 export const METHOD_COLORS: Record<string, string> = {
   RAW: '#e66767', QM: '#8b93a3', ML: '#6b7384', QMR: '#9aa3b5', MOE: '#9085e9', VARSHA: '#22d3ee',
 }
+
+/** A data colour (regime, method, node identity) used as TEXT or a small glyph: unchanged in vivid (neon),
+ *  mixed toward the ink colour on calm surfaces so it stays legible (light: darker, dark: a touch lighter).
+ *  Returns a CSS colour string: use it for `color` / `fill` via style, never concatenate an alpha onto it. */
+export const dataInk = (c: string) => {
+  const t = theme()
+  return t.fx.vivid ? c : `color-mix(in oklab, ${c} ${t.mode === 'light' ? 58 : 80}%, var(--color-fg))`
+}
+
+/** Regime-atlas ramps (continuous): SEQ for mean rainfall (sqrt scale), DIV for bias. */
+export const SEQ = ['#0b1a2e', '#123a66', '#1f5f99', '#2f86d6', '#62b3f0', '#d6ecff']
+export const DIV = ['#e2703f', '#9c4d27', '#4a3a31', '#383835', '#2a4568', '#3170c0', '#5aa2f5']
+
+onThemeApplied((t) => {
+  RAIN_CLASSES.forEach((c, i) => { c.color = t.data.rain[i] })
+  RAIN_RGBA = RAIN_CLASSES.map((c) => hex(c.color))
+  PROB_STEPS.forEach((s, i) => { s.color = t.data.prob[i] })
+  DELTA_STEPS.forEach((s, i) => { s.color = t.data.delta[i] })
+  WARN.forEach((w, i) => { w.text = t.data.warnText[i] })
+  REGIME_COLORS.splice(0, REGIME_COLORS.length, ...t.data.regimes)
+  Object.assign(METHOD_COLORS, t.data.methods)
+  SEQ.splice(0, SEQ.length, ...t.data.seq)
+  DIV.splice(0, DIV.length, ...t.data.div)
+})

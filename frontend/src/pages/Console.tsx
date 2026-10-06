@@ -11,6 +11,7 @@ import Timeline from '../components/Timeline'
 import DistrictDrawer from '../components/DistrictDrawer'
 import { LAYER_OPTS, Legend, LayerControls, RainOverlay, WarningTicker } from '../components/MapChrome'
 import { WARN, rainClass, RAIN_CLASSES } from '../lib/colors'
+import { glow, theme } from '../lib/theme'
 import { useT } from '../lib/i18n'
 import { useSize } from '../components/ui'
 
@@ -31,10 +32,11 @@ function MapHud({ vs }: { vs: MapViewState | null }) {
   const km = NICE_KM.find((k) => (k * 1000) / mpp >= 70) ?? NICE_KM[NICE_KM.length - 1]
   const px = (km * 1000) / mpp
   const brg = vs.bearing ?? 0
+  const V = theme().fx.vivid
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 select-none">
-      <div className="absolute inset-x-6 top-0 h-2.5 bg-[repeating-linear-gradient(90deg,#22d3ee55_0_1px,transparent_1px_12px),repeating-linear-gradient(90deg,#22d3ee99_0_1px,transparent_1px_60px)] bg-[length:100%_5px,100%_10px] bg-no-repeat [mask-image:linear-gradient(90deg,transparent,black_18%,black_82%,transparent)]" />
-      <div className="absolute top-4 right-2 flex items-center gap-2 rounded-md border border-neon/20 bg-ink-1/70 px-2 py-1 font-mono text-[9.5px] tracking-wider text-fg-3 shadow-[0_0_14px_-6px_#22d3ee] backdrop-blur-sm">
+      <div className="absolute inset-x-6 top-0 hidden h-2.5 vivid:block bg-[repeating-linear-gradient(90deg,#22d3ee55_0_1px,transparent_1px_12px),repeating-linear-gradient(90deg,#22d3ee99_0_1px,transparent_1px_60px)] bg-[length:100%_5px,100%_10px] bg-no-repeat [mask-image:linear-gradient(90deg,transparent,black_18%,black_82%,transparent)]" />
+      <div className="absolute top-4 right-2 flex items-center gap-2 rounded-md border border-line bg-ink-1/90 px-2 py-1 font-mono text-[9.5px] tracking-wider text-fg-3 shadow-[0_1px_2px_rgba(0,0,0,0.1)] backdrop-blur-sm vivid:border-neon/20 vivid:bg-ink-1/70 vivid:shadow-[0_0_14px_-6px_#22d3ee]">
         <span className="text-neon/80">⌖</span>
         <span className="tabnum text-fg-2">{Math.abs(lat).toFixed(2)}°{lat >= 0 ? 'N' : 'S'} {Math.abs(lon).toFixed(2)}°{lon >= 0 ? 'E' : 'W'}</span>
         <span className="h-2.5 w-px bg-line-2" />
@@ -43,22 +45,22 @@ function MapHud({ vs }: { vs: MapViewState | null }) {
       <div className="absolute right-2 bottom-1 flex items-end gap-3">
         <div className={`flex flex-col items-start gap-1 font-mono text-[9px] tracking-wider text-fg-3 transition-opacity duration-300 ${(vs.pitch ?? 0) > 2 ? 'opacity-0' : ''}`}>
           <span className="tabnum">{km} km</span>
-          <div className="relative h-1.5 border-x border-b border-neon/70 shadow-[0_2px_6px_-2px_#22d3ee]" style={{ width: px }}>
-            <span className="absolute bottom-0 left-1/2 h-1 w-px bg-neon/60" />
+          <div className="relative h-1.5 border-x border-b border-fg-2/80 vivid:border-neon/70 vivid:shadow-[0_2px_6px_-2px_#22d3ee]" style={{ width: px }}>
+            <span className="absolute bottom-0 left-1/2 h-1 w-px bg-fg-2/70 vivid:bg-neon/60" />
           </div>
         </div>
-        <div className="relative grid h-11 w-11 place-items-center rounded-full border border-neon/25 bg-ink-1/60 shadow-[inset_0_0_12px_#22d3ee22,0_0_14px_-6px_#22d3ee] backdrop-blur-sm">
+        <div className="relative grid h-11 w-11 place-items-center rounded-full border border-line-2 bg-ink-1/90 shadow-[0_1px_2px_rgba(0,0,0,0.12)] backdrop-blur-sm vivid:border-neon/25 vivid:bg-ink-1/60 vivid:shadow-[inset_0_0_12px_#22d3ee22,0_0_14px_-6px_#22d3ee]">
           <svg width={44} height={44} viewBox="-22 -22 44 44" className="absolute inset-0">
             {Array.from({ length: 24 }, (_, i) => {
               const a = (i * 15 * Math.PI) / 180, r0 = i % 6 === 0 ? 15.5 : 17.5
-              return <line key={i} x1={Math.sin(a) * r0} y1={-Math.cos(a) * r0} x2={Math.sin(a) * 19.5} y2={-Math.cos(a) * 19.5} stroke="#22d3ee" strokeOpacity={i % 6 === 0 ? 0.7 : 0.3} strokeWidth={1} />
+              return <line key={i} x1={Math.sin(a) * r0} y1={-Math.cos(a) * r0} x2={Math.sin(a) * 19.5} y2={-Math.cos(a) * 19.5} stroke={V ? '#22d3ee' : 'var(--color-fg-3)'} strokeOpacity={i % 6 === 0 ? 0.7 : 0.3} strokeWidth={1} />
             })}
             <g transform={`rotate(${-brg})`}>
-              <path d="M0,-12 L3,0 L0,2 L-3,0 Z" fill="#22d3ee" style={{ filter: 'drop-shadow(0 0 3px #22d3ee)' }} />
-              <path d="M0,12 L3,0 L0,-2 L-3,0 Z" fill="#26395a" />
+              <path d="M0,-12 L3,0 L0,2 L-3,0 Z" fill={V ? '#22d3ee' : 'var(--color-fg)'} style={{ filter: glow('drop-shadow(0 0 3px #22d3ee)') }} />
+              <path d="M0,12 L3,0 L0,-2 L-3,0 Z" fill="var(--color-line-2)" />
             </g>
           </svg>
-          <span className="absolute -top-0.5 font-mono text-[8px] font-bold text-neon-2" style={{ transform: `rotate(${-brg}deg) translateY(-1px)`, transformOrigin: '50% 22px' }}>N</span>
+          <span className="absolute -top-0.5 font-mono text-[8px] font-bold text-fg vivid:text-neon-2" style={{ transform: `rotate(${-brg}deg) translateY(-1px)`, transformOrigin: '50% 22px' }}>N</span>
         </div>
       </div>
     </div>
@@ -110,6 +112,7 @@ export default function Console() {
     return () => cancelAnimationFrame(raf)
   }, [mode])
 
+  const V = theme().fx.vivid
   const intensity = useMemo(() => (day ? Math.min(1, day.stats[lead - 1].cor_mean / 14) : 0.2), [day, lead])
   if (!meta) return null
   const hovered = hover && day ? meta.districts[hover.id] : null
@@ -131,16 +134,16 @@ export default function Console() {
                 <MapView {...mapProps} layer={rightLayer} viewState={vs} onViewState={setVs} />
               </div>
               <div className="absolute top-0 bottom-0 z-10 w-0" style={{ left: `${split * 100}%` }}>
-                <div className="absolute top-0 bottom-0 -left-px w-0.5 bg-gradient-to-b from-neon/20 via-neon to-neon/20 shadow-[0_0_16px_#22d3ee]" />
-                <div className="absolute top-1/2 -left-5 grid h-10 w-10 -translate-y-1/2 cursor-ew-resize place-items-center rounded-full border border-neon bg-[radial-gradient(circle_at_35%_30%,#0e3a48,#070c16_70%)] font-mono text-sm text-neon shadow-[0_0_24px_#22d3ee88,inset_0_1px_0_#ffffff22] transition-transform hover:scale-110"
+                <div className="absolute top-0 bottom-0 -left-px w-0.5 bg-fg/80 vivid:bg-transparent vivid:bg-gradient-to-b vivid:from-neon/20 vivid:via-neon vivid:to-neon/20 vivid:shadow-[0_0_16px_#22d3ee]" />
+                <div className="absolute top-1/2 -left-5 grid h-10 w-10 -translate-y-1/2 cursor-ew-resize place-items-center rounded-full border border-line-2 bg-ink-1 font-mono text-sm text-fg shadow-[0_2px_6px_rgba(0,0,0,0.25)] transition-transform hover:scale-110 vivid:border-neon vivid:bg-[radial-gradient(circle_at_35%_30%,#0e3a48,#070c16_70%)] vivid:text-neon vivid:shadow-[0_0_24px_#22d3ee88,inset_0_1px_0_#ffffff22]"
                   onPointerDown={(e) => {
                     (e.target as Element).setPointerCapture(e.pointerId)
                     const move = (ev: PointerEvent) => { const r = (e.target as Element).closest('.relative.flex-1')!.getBoundingClientRect(); setSplit(Math.min(0.95, Math.max(0.05, (ev.clientX - r.left) / r.width))) }
                     const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up) }
                     window.addEventListener('pointermove', move); window.addEventListener('pointerup', up)
-                  }}><span aria-hidden className="pointer-events-none absolute -inset-1.5 rounded-full border border-dashed border-neon/40 motion-safe:animate-spin-slow" />⇆</div>
-                <div className="absolute top-3 right-4 rounded-md border border-[#e66767]/40 bg-[#e66767]/20 px-2 py-1 font-mono text-[10px] whitespace-nowrap text-[#f0a3a3] shadow-[0_0_14px_-4px_#e66767] backdrop-blur-sm">◀ {t('Raw NWP')}</div>
-                <div className="absolute top-3 left-4 rounded-md border border-neon/40 bg-neon/15 px-2 py-1 font-mono text-[10px] whitespace-nowrap text-neon-2 shadow-[0_0_14px_-4px_#22d3ee] backdrop-blur-sm">{t(LAYER_OPTS.find((o) => o.v === rightLayer)!.label)} ▶</div>
+                  }}><span aria-hidden className="pointer-events-none absolute -inset-1.5 hidden rounded-full border border-dashed border-neon/40 motion-safe:animate-spin-slow vivid:block" />⇆</div>
+                <div className="absolute top-3 right-4 rounded-md border border-raw/40 bg-raw/20 px-2 py-1 font-mono text-[10px] whitespace-nowrap text-raw-2 backdrop-blur-sm calm:bg-ink-1/95 calm:shadow-[0_1px_3px_rgba(0,0,0,0.15)] vivid:shadow-[0_0_14px_-4px_#e66767]">◀ {t('Raw NWP')}</div>
+                <div className="absolute top-3 left-4 rounded-md border border-neon/40 bg-neon/15 px-2 py-1 font-mono text-[10px] whitespace-nowrap text-neon-2 backdrop-blur-sm calm:bg-ink-1/95 calm:shadow-[0_1px_3px_rgba(0,0,0,0.15)] vivid:shadow-[0_0_14px_-4px_#22d3ee]">{t(LAYER_OPTS.find((o) => o.v === rightLayer)!.label)} ▶</div>
               </div>
             </>
           ) : (
@@ -154,7 +157,7 @@ export default function Console() {
         <div className="pointer-events-none absolute inset-0 z-20 grid grid-rows-[minmax(0,1fr)_auto] gap-3 p-3">
           <div className="grid min-h-0 grid-cols-[320px_minmax(0,1fr)_340px] gap-3">
             <div className="pointer-events-auto flex min-h-0 flex-col gap-3">
-              <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl"><RegimePanel meta={meta} day={day} lead={lead} /><div aria-hidden className="pointer-events-none sticky bottom-0 -mt-7 h-7 rounded-b-2xl bg-gradient-to-t from-[#050a14]/90 to-transparent" /></div>
+              <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl"><RegimePanel meta={meta} day={day} lead={lead} /><div aria-hidden className="pointer-events-none sticky bottom-0 -mt-7 h-7 rounded-b-2xl bg-gradient-to-t from-ink-1/90 to-transparent vivid:from-[#050a14]/90" /></div>
               <LayerControls />
             </div>
             <div className="relative min-h-0">
@@ -163,7 +166,7 @@ export default function Console() {
             </div>
             <div className="pointer-events-auto min-h-0 overflow-y-auto rounded-2xl">
               {selected === null && <SituationPanel meta={meta} day={day} lead={lead} onSelect={(id) => set({ selected: id, playing: false })} />}
-              {selected === null && <div aria-hidden className="pointer-events-none sticky bottom-0 -mt-7 h-7 rounded-b-2xl bg-gradient-to-t from-[#050a14]/90 to-transparent" />}
+              {selected === null && <div aria-hidden className="pointer-events-none sticky bottom-0 -mt-7 h-7 rounded-b-2xl bg-gradient-to-t from-ink-1/90 to-transparent vivid:from-[#050a14]/90" />}
             </div>
           </div>
           <div className="pointer-events-auto"><Timeline /></div>
@@ -176,36 +179,36 @@ export default function Console() {
           const vm = Math.max(vRaw, vCor, vObs, 1e-6)
           return (
             <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
-              className="pointer-events-none absolute z-40 w-[230px] overflow-hidden rounded-xl border border-neon/25 bg-[linear-gradient(180deg,#0f1b30f5,#080f1cf5)] p-3 shadow-[0_18px_40px_-12px_#000,0_0_24px_-10px_#22d3ee,inset_0_1px_0_#ffffff14] backdrop-blur"
-              style={{ left: Math.min(hover.x + 16, size.w - 250), top: Math.max(8, hover.y - 30) }}>
-              <span aria-hidden className="absolute inset-x-0 top-0 h-[2px]" style={{ background: `linear-gradient(90deg, transparent, ${wc}, transparent)` }} />
-              <span aria-hidden className="absolute -top-10 -right-10 h-20 w-20 rounded-full blur-2xl" style={{ background: wc, opacity: 0.18 }} />
+              className="pointer-events-none absolute z-40 w-[230px] overflow-hidden rounded-xl border border-line-2 bg-ink-1 p-3 backdrop-blur vivid:border-neon/25 vivid:bg-transparent vivid:bg-[linear-gradient(180deg,#0f1b30f5,#080f1cf5)] vivid:shadow-[0_18px_40px_-12px_#000,0_0_24px_-10px_#22d3ee,inset_0_1px_0_#ffffff14]"
+              style={{ left: Math.min(hover.x + 16, size.w - 250), top: Math.max(8, hover.y - 30), boxShadow: V ? undefined : 'var(--tt-shadow)' }}>
+              <span aria-hidden className="absolute inset-x-0 top-0 h-[2px]" style={{ background: V ? `linear-gradient(90deg, transparent, ${wc}, transparent)` : wc }} />
+              <span aria-hidden className="absolute -top-10 -right-10 hidden h-20 w-20 rounded-full blur-2xl vivid:block" style={{ background: wc, opacity: 0.18 }} />
               <div className="relative font-display text-sm font-semibold tracking-tight">{hovered.name}</div>
               <div className="relative text-[11px] text-fg-3">{hovered.state}</div>
               <div className="relative mt-2 grid grid-cols-3 gap-1 font-mono text-[10.5px]">
                 {[
-                  { l: 'raw', v: vRaw, cls: 'text-[#f0a3a3]', c: '#e66767' },
-                  { l: 'varsha', v: vCor, cls: 'text-neon-2', c: '#22d3ee' },
-                  { l: 'obs', v: vObs, cls: 'text-fg', c: '#e6edf7' },
+                  { l: 'raw', v: vRaw, cls: 'text-raw-2', c: 'var(--color-raw)' },
+                  { l: 'varsha', v: vCor, cls: 'text-neon-2', c: 'var(--color-neon)' },
+                  { l: 'obs', v: vObs, cls: 'text-fg', c: 'var(--color-fg)' },
                 ].map((r) => (
-                  <div key={r.l} className="rounded-md border border-line/70 bg-ink-1/60 px-1.5 py-1">
+                  <div key={r.l} className="rounded-md border border-line/70 bg-ink-2/60 px-1.5 py-1 vivid:bg-ink-1/60">
                     <div className="text-[9px] tracking-wider text-fg-3 uppercase">{r.l}</div>
                     <div className={`${r.cls} font-semibold tabnum`}>{r.v.toFixed(1)}</div>
-                    <div className="mt-0.5 h-[2px] overflow-hidden rounded-full bg-line/70"><div className="h-full rounded-full" style={{ width: `${(r.v / vm) * 100}%`, background: r.c, boxShadow: `0 0 4px ${r.c}` }} /></div>
+                    <div className="mt-0.5 h-[2px] overflow-hidden rounded-full bg-line/70"><div className="h-full rounded-full" style={{ width: `${(r.v / vm) * 100}%`, background: r.c, boxShadow: glow(`0 0 4px ${r.c}`) }} /></div>
                   </div>
                 ))}
               </div>
               <div className="relative mt-2 font-mono text-[10px] text-fg-2">max cell {day.d.corx[lead - 1][hover.id].toFixed(0)} mm · {RAIN_CLASSES[Math.max(0, rainClass(day.d.corx[lead - 1][hover.id]))].label}</div>
               <div className="relative font-mono text-[10px] text-fg-2">P(heavy) {day.d.ph[lead - 1][hover.id]}% · P(v.heavy) {day.d.pvh[lead - 1][hover.id]}%</div>
-              <div className="relative mt-2 flex items-center gap-1.5 rounded-md border px-1.5 py-1 font-mono text-[10px]" style={{ color: wc, borderColor: wc + '55', background: wc + '14' }}>
-                <span className="h-2 w-2 rounded-full" style={{ background: wc, boxShadow: `0 0 6px ${wc}` }} />
+              <div className="relative mt-2 flex items-center gap-1.5 rounded-md border px-1.5 py-1 font-mono text-[10px]" style={{ color: V ? wc : WARN[wl].text, borderColor: wc + '55', background: wc + '14' }}>
+                <span className="h-2 w-2 rounded-full" style={{ background: wc, boxShadow: glow(`0 0 6px ${wc}`) }} />
                 {t(WARN[wl].name)} · {t(WARN[wl].action)}
               </div>
               {layer !== 'cor' && layer !== 'raw' && layer !== 'obs' && <div className="relative mt-1 font-mono text-[10px] text-fg-3">layer value {districtValue(day, layer, lead - 1, hover.id).toFixed(2)}</div>}
             </motion.div>
           )
         })()}
-        {playing && <div className="absolute top-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-neon/40 bg-ink-1/80 px-3 py-1 font-mono text-[10px] tracking-wider text-neon shadow-[0_0_20px_-6px_#22d3ee] backdrop-blur-sm"><span className="dot-live text-neon" />▶ REPLAYING SEASON</div>}
+        {playing && <div className="absolute top-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-neon/40 bg-ink-1/80 px-3 py-1 font-mono text-[10px] tracking-wider text-neon backdrop-blur-sm calm:bg-ink-1/95 calm:shadow-[0_1px_3px_rgba(0,0,0,0.15)] vivid:shadow-[0_0_20px_-6px_#22d3ee]"><span className="dot-live text-neon" />▶ REPLAYING SEASON</div>}
       </div>
     </div>
   )

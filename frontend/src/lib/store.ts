@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { Layer, Meta, Mode, Tab, TimelineDay, Verification } from './types'
+import { applyTheme, loadSavedTheme, saveTheme, type ThemeName } from './theme'
 
 interface State {
   meta: Meta | null
@@ -15,6 +16,8 @@ interface State {
   playing: boolean
   lang: 'en' | 'hi'
   booted: boolean
+  theme: ThemeName
+  setTheme: (t: ThemeName) => void
   set: (p: Partial<State>) => void
   step: (d: number) => void
 }
@@ -33,6 +36,8 @@ export const useStore = create<State>((set, get) => ({
   playing: false,
   lang: 'en',
   booted: false,
+  theme: loadSavedTheme(),
+  setTheme: (t) => { applyTheme(t); saveTheme(t); set({ theme: t }) },
   set: (p) => set(p),
   step: (d) => {
     const n = get().timeline.length
